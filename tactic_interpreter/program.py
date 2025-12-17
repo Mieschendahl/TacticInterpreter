@@ -72,5 +72,3 @@ class Program:
     statement: Statement | Hole  # Not list[Statement | Hole] such that hole filling only spawns holes inside the filled hole
     selected_hole: Optional[Hole] = None
     holes: list[Hole] = field(default_factory=list)
-    implementation: str = ""
-    

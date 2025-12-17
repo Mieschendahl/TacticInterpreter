@@ -2,67 +2,70 @@ from pathlib import Path
 from typing import Any
 
 from tactic_interpreter.parser import *
-from tactic_interpreter.program import DescriptionStatement, CompositeStatement, FunctionDeclaration, FunctionType, Hole, Identifier, Program, InjectedExpression, ReturnStatement, VariableDeclaration
-from tactic_interpreter.utility import TerminationException, TacticError, pad_str
-from tactic_interpreter.cleaner import HoleCleaner
+from tactic_interpreter.program import DescriptionStatement, CompositeStatement, FunctionDeclaration, FunctionType, Hole, Program, ReturnStatement, VariableDeclaration
+from tactic_interpreter.utility import TerminationException, TacticError, UnexpectedValueError, pad_str
+from tactic_interpreter.hole_cleaner import HoleCleaner
 from tactic_interpreter.visualise import program_to_str
+
+TACTICS = {"description", "signature", "intro", "let", "return", "fill", "switch", "finish"}
 
 class Interpreter:
     def __init__(self):
         self.program = Program(Hole({"description"}))
-        self.cleaner = HoleCleaner()
-        self.cleaner.clean_program(self.program)
+        self.hole_cleaner = HoleCleaner()
+        self.hole_cleaner.clean_holes(self.program)
         self.print_program("Initial program")
+
+    def get_allowed_tactics(self) -> set[str]:
+        tactics: set[str] = set()
+        if len(self.program.holes) == 0:
+            tactics.update({"finish"})
+        if len(self.program.holes) > 1:
+            tactics.update({"switch"})
+        if self.program.selected_hole is not None:
+            tactics.update(self.program.selected_hole.tactics)
+        return tactics
 
     def print_program(self, status: str, print_options: bool = True) -> None:
         print(f"{status}:")
         print(pad_str(program_to_str(self.program), "| "))
         if print_options:
-            tactics: set[str] = set()
-            if len(self.program.holes) == 0:
-                tactics.update({"finish"})
-            if len(self.program.holes) > 1:
-                tactics.update({"switch"})
-            if self.program.selected_hole is not None:
-                tactics.update(self.program.selected_hole.tactics)
+            tactics = self.get_allowed_tactics()
             tactics_str = ", ".join(tactics) if len(tactics) > 0 else "None"
-            print(pad_str(f"Options: {tactics_str}", "> "))
+            print(pad_str(f"Options: {tactics_str}", "| "))
 
-    def check_selected_hole(self, keyword: str) -> None:
-        if self.program.selected_hole is None:
-            raise TacticError(f"No hole is selected")
-        if keyword not in self.program.selected_hole.tactics:
-            raise TacticError(f"Tactic {keyword!r} not allowed for the selected hole")
-    
     def get_selected_hole(self) -> Hole:
         if self.program.selected_hole is None:
             raise TacticError(f"No hole is selected")
         return self.program.selected_hole
-    
+
     def fill_selected_hole(self, filler: Any) -> None:
         self.get_selected_hole().filler = filler
-        self.cleaner.clean_program(self.program)
-    
+        self.hole_cleaner.clean_holes(self.program)
+
     def select_hole(self, index: int) -> None:
         if index < 0 or index >= len(self.program.holes):
             raise TacticError(f"There is no unfilled hole with the index {index!r}")
         if self.program.selected_hole is self.program.holes[index]:
             raise TacticError(f"Hole is already selected")
         self.program.selected_hole = self.program.holes[index]
-        self.cleaner.clean_program(self.program)
+        self.hole_cleaner.clean_holes(self.program)
 
     def interprete_tactic(self, tactic: str) -> None:
         if tactic.strip() == "":
-            raise TacticError(f"No tactic keyword specified")
+            raise TacticError(f"No tactic specified")
         if ":" not in tactic:
             raise TacticError(f"Missing {":"!r} after tactic keyword")
         keyword, data = tactic.split(":", 1)
         keyword = keyword.strip()
+        if keyword not in TACTICS:
+            raise TacticError(f"Unknown tactic {keyword!r}")
+        if keyword not in self.get_allowed_tactics():
+            raise TacticError(f"The tactic {keyword!r} can not be applied right now")
         match keyword:
             case "description":
                 if data.strip() == "":
                     raise TacticError(f"No description specified")
-                self.check_selected_hole(keyword)
                 description = data.strip()
                 self.fill_selected_hole(
                     CompositeStatement(
@@ -72,7 +75,6 @@ class Interpreter:
                 )
                 self.print_program(f"Added description")
             case "signature":
-                self.check_selected_hole(keyword)
                 if data.strip() == "":
                     raise TacticError(f"No signature name specified")
                 if ":" not in data:
@@ -94,14 +96,12 @@ class Interpreter:
                 )
                 self.print_program(f"Added signature")
             case "intro":
-                self.check_selected_hole(keyword)
                 if data.strip() == "":
                     raise TacticError(f"No variable names specified")
                 identifier = parse_identifier(data)
                 self.fill_selected_hole(identifier)
                 self.print_program(f"Introduced name")
             case "let":
-                self.check_selected_hole(keyword)
                 if data.strip() == "":
                     raise TacticError(f"No variable name specified")
                 if ":" not in data:
@@ -123,14 +123,12 @@ class Interpreter:
                 )
                 self.print_program(f"Added variable declaration")
             case "fill":
-                self.check_selected_hole(keyword)
                 if data.strip() == "":
                     raise TacticError(f"No expression specified")
                 expression = parse_expression(data.strip())
                 self.fill_selected_hole(expression)
                 self.print_program(f"Added expression")
             case "return":
-                self.check_selected_hole(keyword)
                 self.fill_selected_hole(ReturnStatement(Hole({"fill"})))
                 self.print_program(f"Added return statement")
             case "switch":
@@ -145,7 +143,7 @@ class Interpreter:
                 self.print_program(f"Finished the program", False)
                 raise TerminationException
             case _:
-                raise TacticError(f"Unknown tactic keyword {keyword!r}")
+                raise UnexpectedValueError(keyword)
         
     def interprete_file(self, file_path: str | Path) -> None:
         file_path = Path(file_path)

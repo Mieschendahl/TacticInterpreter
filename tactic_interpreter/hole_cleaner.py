@@ -6,7 +6,7 @@ class HoleCleaner:
     def __init__(self):
         self.selected_hole: Optional[Hole] = None
         self.holes: list[Hole] = []
-        
+
     def clean_node(self, node: Any) -> Any:
         match node:
             case Hole():
@@ -16,7 +16,7 @@ class HoleCleaner:
                     return self.clean_node(node.filler)
                 if self.selected_hole is None:
                     self.selected_hole = node
-                node.selected = self.selected_hole is node
+                node.selected = False
                 node.index = len(self.holes)
                 self.holes.append(node)
                 return node
@@ -55,11 +55,13 @@ class HoleCleaner:
             case _:
                 raise UnexpectedValueError(node)
 
-    def clean_program(self, program: Program) -> None:
+    def clean_holes(self, program: Program) -> None:
         self.selected_hole = program.selected_hole
         self.holes = []
         program.statement = self.clean_node(program.statement)
         if self.selected_hole is None and len(self.holes) > 0:
             self.selected_hole = self.holes[-1]
+        if self.selected_hole is not None:
+            self.selected_hole.selected = True
         program.selected_hole = self.selected_hole
         program.holes = self.holes
