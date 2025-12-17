@@ -24,24 +24,29 @@ TOKEN_REGEX = re.compile(
     (?P<LPAREN>\() |
     (?P<RPAREN>\)) |
     (?P<COMMA>,) |
-    (?P<PRIMITIVE>bool|int|float|complex|str)
+    (?P<IDENTIFIER>[A-Za-z_][A-Za-z0-9_]*)
     """,
     re.VERBOSE,
 )
+
+PRIMITIVES = {"bool", "int", "float", "complex", "str"}
 
 def lex_type(type_str: str) -> list[Token]:
     tokens: list[Token] = []
     pos = 0
     for match_ in TOKEN_REGEX.finditer(type_str):
         if match_.start() != pos:
-            raise TacticError(f"Unexpected character at position {pos} {type_str[pos]!r}")
+            raise TacticError(f"Unexpected character at position {pos}: {type_str[pos]!r}")
         kind = match_.lastgroup
         text = match_.group()
         match kind:
             case "WHITESPACE":
                 pass
-            case "PRIMITIVE":
-                tokens.append(Token("primitive", text))
+            case "IDENTIFIER":
+                if text in PRIMITIVES:
+                    tokens.append(Token("primitive", text))
+                else:
+                    raise TacticError(f"Unexpected token at position {pos}: {text!r}")
             case "LPAREN":
                 tokens.append(Token("("))
             case "RPAREN":
@@ -52,7 +57,7 @@ def lex_type(type_str: str) -> list[Token]:
                 tokens.append(Token("->"))
         pos = match_.end()
     if pos != len(type_str):
-        raise TacticError(f"Unexpected character at position {pos} {type_str[pos]!r}")
+        raise TacticError(f"Unexpected character at position {pos}: {type_str[pos]!r}")
     return tokens
 
 class TokenStream:
