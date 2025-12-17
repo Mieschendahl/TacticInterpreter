@@ -1,0 +1,31 @@
+description: Calculate the monthly bill for cheap energy
+
+signature: cheap_energy: (int) -> float
+
+let: kwh: int
+
+intro: kwh
+
+let: base_price: float
+
+switch: 10
+
+switch: 1
+
+let: work_price: float
+
+fill: 0.19 * kwh
+
+fill: base_price + work_price
+
+return:
+
+fill: base_price + work_price
+
+finish:
+
+intro: kwh
+
+fill: 4.9
+
+finish:

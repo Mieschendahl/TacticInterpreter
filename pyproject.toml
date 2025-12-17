@@ -1,0 +1,13 @@
+[project]
+name = "tactic_interpreter"
+version = "1.0.0"
+description = "A Python library for a programming tactic interpreter."
+authors = [{name = "Leonardo Mieschendahl"}]
+dependencies = []
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+exclude = ["build*", "dist*", "dev*"]
