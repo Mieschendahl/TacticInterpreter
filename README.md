@@ -19,11 +19,10 @@ This approach encourages users to follow a meaningful construction order (e.g. f
 ## Architecture
 
 ### Program model
-
 The program is stored as an AST containing statements, expressions, and holes.
 
 ### Holes 
-Unfilled holes represent missing program fragments and restrict which tactics may be applied. (Currently filled holes are not removed, but simply act as a proxy to its filler value)
+Holes represent missing program fragments and restrict which tactics may be applied. (Currently filled holes are not removed, but simply act as a proxy to its filler value)
 
 ### Tactics
 Tactics are textual commands (e.g. `let: x: int` or `fill: y + 1`) that:
@@ -31,15 +30,15 @@ Tactics are textual commands (e.g. `let: x: int` or `fill: y + 1`) that:
 - replace that hole with a concrete AST fragment
 - possibly introduce new holes
 
-### Updater
+### Hole Cleaner
 After each tactic, the program structure is updated:
-- unfilled holes are recomputed
+- filled holes are removed
 - the next unfilled hole is selected if necessary
 - the next valid tactics are determined
 - the current program state is printed, if no error occured
 
 ### Interpreter
-The interpreter reads tactics (from a file or interactively), validates them, applies them to the program, and terminates successfully once no unfilled holes remain.
+The interpreter reads tactics (from a file or interactively), validates them, applies them to the program, and terminates successfully once no holes remain.
 
 ## Tactics
 
@@ -67,8 +66,8 @@ The interpreter reads tactics (from a file or interactively), validates them, ap
 - creates a hole for the return expression
 
 ### `switch`
-- changes which unfilled hole is currently selected
-- takes the index of an unfilled hole as its argument
+- changes which hole is currently selected
+- takes the index of a hole as its argument
 
 ### `finish`
 - attempts to finalize the program

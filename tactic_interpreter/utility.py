@@ -1,5 +1,9 @@
-class UnexpectedCaseError(Exception):
-    pass
+from typing import Any
+
+class UnexpectedValueError(Exception):
+    def __init__(self, value: Any):
+        super().__init__(f"Got unexpected value {value!r}")
+        self.value = value
 
 class TacticError(Exception):
     pass

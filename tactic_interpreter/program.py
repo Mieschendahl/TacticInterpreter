@@ -4,6 +4,8 @@ from typing import Any, Literal, Optional, Sequence
 @dataclass
 class Hole:
     tactics: set[str] # the set of tactics that can be applied to that hole
+    selected: bool = False
+    index: int = 0
     filler: Optional[Any] = None
 
 @dataclass
@@ -69,6 +71,6 @@ class ReturnStatement(Statement):
 class Program:
     statement: Statement | Hole  # Not list[Statement | Hole] such that hole filling only spawns holes inside the filled hole
     selected_hole: Optional[Hole] = None
-    unfilled_holes: list[Hole] = field(default_factory=list)
+    holes: list[Hole] = field(default_factory=list)
     implementation: str = ""
     

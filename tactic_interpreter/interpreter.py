@@ -4,25 +4,24 @@ from typing import Any
 from tactic_interpreter.parser import *
 from tactic_interpreter.program import DescriptionStatement, CompositeStatement, FunctionDeclaration, FunctionType, Hole, Identifier, Program, InjectedExpression, ReturnStatement, VariableDeclaration
 from tactic_interpreter.utility import TerminationException, TacticError, pad_str
-from tactic_interpreter.updater import Updater
-
+from tactic_interpreter.cleaner import HoleCleaner
+from tactic_interpreter.visualise import program_to_str
 
 class Interpreter:
     def __init__(self):
         self.program = Program(Hole({"description"}))
-        self.updater = Updater()
-        self.updater.update_program(self.program)
+        self.cleaner = HoleCleaner()
+        self.cleaner.clean_program(self.program)
         self.print_program("Initial program")
 
     def print_program(self, status: str, print_options: bool = True) -> None:
-        self.updater.update_program(self.program) # not necessary, but a good safety guard
         print(f"{status}:")
-        print(pad_str(self.program.implementation, "| "))
+        print(pad_str(program_to_str(self.program), "| "))
         if print_options:
             tactics: set[str] = set()
-            if len(self.program.unfilled_holes) == 0:
+            if len(self.program.holes) == 0:
                 tactics.update({"finish"})
-            if len(self.program.unfilled_holes) > 1:
+            if len(self.program.holes) > 1:
                 tactics.update({"switch"})
             if self.program.selected_hole is not None:
                 tactics.update(self.program.selected_hole.tactics)
@@ -42,15 +41,15 @@ class Interpreter:
     
     def fill_selected_hole(self, filler: Any) -> None:
         self.get_selected_hole().filler = filler
-        self.updater.update_program(self.program)
+        self.cleaner.clean_program(self.program)
     
     def select_hole(self, index: int) -> None:
-        if index < 0 or index >= len(self.program.unfilled_holes):
+        if index < 0 or index >= len(self.program.holes):
             raise TacticError(f"There is no unfilled hole with the index {index!r}")
-        if self.program.selected_hole is self.program.unfilled_holes[index]:
+        if self.program.selected_hole is self.program.holes[index]:
             raise TacticError(f"Hole is already selected")
-        self.program.selected_hole = self.program.unfilled_holes[index]
-        self.updater.update_program(self.program)
+        self.program.selected_hole = self.program.holes[index]
+        self.cleaner.clean_program(self.program)
 
     def interprete_tactic(self, tactic: str) -> None:
         if tactic.strip() == "":
@@ -141,7 +140,7 @@ class Interpreter:
                 self.select_hole(index)
                 self.print_program(f"Switched hole")
             case "finish":
-                if len(self.program.unfilled_holes) > 0:
+                if len(self.program.holes) > 0:
                     raise TacticError(f"There are still unfilled holes")
                 self.print_program(f"Finished the program", False)
                 raise TerminationException
