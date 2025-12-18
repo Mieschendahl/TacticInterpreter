@@ -83,7 +83,7 @@ class Interpreter:
                 identifier = parse_identifier(name)
                 if function_type_str == "":
                     raise TacticError(f"No function type specified")
-                function_type: FunctionType = parse_type_str(function_type_str) # type:ignore
+                function_type: FunctionType = parse_type(function_type_str) # type:ignore
                 if not isinstance(function_type, FunctionType):
                     raise TacticError(f"Only function types are allowed for the signature")
                 self.fill_selected_hole(
@@ -110,7 +110,7 @@ class Interpreter:
                 name = parse_identifier(name)
                 if type_str == "":
                     raise TacticError(f"No variable type specified")
-                type_ = parse_type_str(type_str)
+                type_ = parse_type(type_str)
                 self.fill_selected_hole(
                     CompositeStatement(
                         VariableDeclaration(

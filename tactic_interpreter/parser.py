@@ -77,14 +77,14 @@ class TokenStream:
         self.pos += 1
         return token
 
-def parse_tuple(stream: TokenStream) -> list[Type]:
+def parse_tuple_tokens(stream: TokenStream) -> list[Type]:
     entries: list[Type] = []
     stream.consume("(")
     if stream.peek() is not None and stream.peek().kind == ")": # type:ignore
         stream.consume(")")
         return entries
     while True:
-        entries.append(parse_type(stream))
+        entries.append(parse_type_tokens(stream))
         token = stream.peek()
         if token is None:
             raise TacticError("Unclosed '('")
@@ -97,7 +97,7 @@ def parse_tuple(stream: TokenStream) -> list[Type]:
         raise TacticError(f"Unexpected token {token.kind!r}")
     return entries
 
-def parse_type(stream: TokenStream) -> Type:
+def parse_type_tokens(stream: TokenStream) -> Type:
     token = stream.peek()
     if token is None:
         raise TacticError(f"Missing a type")
@@ -105,21 +105,21 @@ def parse_type(stream: TokenStream) -> Type:
         stream.consume()
         left: list[Type] = [PrimitiveType(token.value)] # type:ignore
     elif token.kind == "(":
-        left = parse_tuple(stream)
+        left = parse_tuple_tokens(stream)
     else:
         raise TacticError(f"Misplaced token {token.kind!r}")
     if stream.peek() is not None and stream.peek().kind == "->": # type:ignore
         stream.consume("->")
-        right = parse_type(stream)
+        right = parse_type_tokens(stream)
         return FunctionType(left, right)
     if len(left) != 1:
         raise TacticError("Unexpected tuple type")
     return left[0]
 
-def parse_type_str(type_str: str) -> Type:
+def parse_type(type_str: str) -> Type:
     tokens = lex_type(type_str)
     stream = TokenStream(tokens)
-    result = parse_type(stream)
+    result = parse_type_tokens(stream)
     if stream.peek() is not None:
         raise TacticError(f"Unexpected trailing tokens")
     return result
